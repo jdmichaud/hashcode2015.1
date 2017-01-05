@@ -4,7 +4,7 @@
   "description": "Code for Google hascode 2015 Qualification round",
   "main": "main.js",
   "scripts": {
-    "test": "node_modules/.bin/jasmine *.spec*"
+    "test": "node_modules/.bin/jasmine specs/*.spec*"
   },
   "engines": {
     "node": ">=6.9.0"
