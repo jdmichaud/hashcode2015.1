@@ -1,0 +1,36 @@
+{
+  "name": "hashcode2015.1",
+  "version": "0.0.1",
+  "description": "Code for Google hascode 2015 Qualification round",
+  "main": "main.js",
+  "scripts": {
+    "test": "node_modules/.bin/jasmine *.spec*"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jdmichaud/hashcode2015.1"
+  },
+  "keywords": [
+    "Hashcode"
+  ],
+  "author": "JD",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jdmichaud/hashcode2015.1/issues"
+  },
+  "homepage": "https://github.com/jdmichaud/hashcode2015.1",
+  "dependencies": {
+    "iconv-lite": "^0.4.15"
+  },
+  "devDependencies": {
+    "eslint": "^3.12.2",
+    "eslint-config-airbnb": "^13.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^2.2.3",
+    "eslint-plugin-react": "^6.8.0",
+    "jasmine": "^2.5.2"
+  }
+}
