@@ -16,7 +16,14 @@ function fixEncoding(buffer) {
 }
 
 function generateRows(parameters) {
-  return Array(parameters.R).fill(Array(parameters.S).fill(constants.AVAILABLE));
+  // return Array(parameters.R).fill(Array(parameters.S).fill(constants.AVAILABLE));
+  // [rowid, colid, value, size]
+  return [...Array(parameters.R).keys()].map(i => ({
+    rowid: i,
+    colid: 0,
+    value: constants.AVAILABLE,
+    size: parameters.S,
+  }));
 }
 
 function decodeParameters(line) {
@@ -53,11 +60,11 @@ function loadInput(filepath) {
   const pools = [];
   const servers = [];
   for (let i = 0; i < parameters.U; i += 1) {
-    const unavailable = decodeUnavailable(lines[i + constants.UNAVAILBLE_OFFSET]);
-    insert(rows, unavailable.row, unavailable.slot, constants.UNAVAILBLE);
+    const unavailable = decodeUnavailable(lines[i + constants.UNAVAILABLE_OFFSET]);
+    insert(rows, unavailable.row, unavailable.slot, constants.UNAVAILABLE);
   }
   for (let i = 0; i < constants.M; i += 1) {
-    servers.push(decodeServer(lines[i + constants.UNAVAILBLE_OFFSET + parameters.U]));
+    servers.push(decodeServer(lines[i + constants.UNAVAILABLE_OFFSET + parameters.U]));
   }
   return {
     parameters,
@@ -68,9 +75,32 @@ function loadInput(filepath) {
 }
 
 function saveResult(rows, pools, filename) {}
-function insert(rows, row, col, value, size = 1) {}
+
+function insert(rows, rowid, colid, value, size = 1) {
+  const row = rows.filter(r => r.rowid === rowid && r.colid === colid);
+  let i = 0;
+  for (let j = 0; i < row.length; i += 1) {
+    j += row[i][2];
+    if (j >= colid) {
+      break;
+    }
+  }
+}
+
 function getEmptySpace(rows, size, row = 0, col = 0) {}
-function getRow(rows, servers) {}
+
+function getPosition(rows, servers) {
+  // Get row
+  var row = 0;
+  var size = 0;
+  const availableSpaces =
+    rows.filter(r => r.rowid === row && r.value === constants.AVAILABLE && r.size >= size);
+  const sameSizeAvailable = availableSpaces.filter(available => available.size === size);
+  if (sameSizeAvailable.length) {
+    console.log('avoid eslint warning');
+  }
+}
+
 function computeGC(rows, pool, servers) {}
 function score(rows, pools, servers) {}
 
@@ -79,7 +109,7 @@ module.exports = {
   saveResult,
   insert,
   getEmptySpace,
-  getRow,
+  getPosition,
   computeGC,
   score,
 };

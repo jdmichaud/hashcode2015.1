@@ -1,5 +1,5 @@
 module.exports = Object.freeze({
   AVAILABLE: -1,
-  UNAVAILBLE: -2,
-  UNAVAILBLE_OFFSET: 1,
+  UNAVAILABLE: -2,
+  UNAVAILABLE_OFFSET: 1,
 });
