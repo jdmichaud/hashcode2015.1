@@ -1,9 +1,32 @@
 const hashcode = require('../js/hashcode');
+const constants = require('../js/constants');
 
 describe('hashcode', () => {
   describe('loadInput', () => {
     it('shall load a file', () => {
-      expect(true).toBe(true);
+      const results = hashcode.loadFile('tests/provided.hc');
+      expect(results.parameters.R).toEqual(2);
+      expect(results.parameters.S).toEqual(5);
+      expect(results.parameters.U).toEqual(1);
+      expect(results.parameters.P).toEqual(2);
+      expect(results.parameters.M).toEqual(5);
+      expect(results.rows.length).toEqual(results.parameters.R);
+      expect(results.rows[0]).toEqual([
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+      ]);
+      expect(results.rows[1]).toEqual([
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+        constants.AVAILABLE,
+      ]);
+      expect(results.pools.length).toEqual(results.parameters.P);
+      expect(results.servers.length).toEqual(results.parameters.M);
     });
   });
 

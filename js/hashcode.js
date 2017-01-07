@@ -3,7 +3,7 @@
 const fs = require('fs');
 const iconv = require('iconv-lite');
 
-const constants = require('constants');
+const constants = require('./constants');
 
 /**
  * Convert from the original latin1 to proper utf8
@@ -29,42 +29,42 @@ function generateRows(parameters) {
 function decodeParameters(line) {
   const values = line.split(/\W+/);
   return {
-    R: values[0],
-    S: values[1],
-    U: values[2],
-    P: values[3],
-    M: values[4],
+    R: parseInt(values[0], 10),
+    S: parseInt(values[1], 10),
+    U: parseInt(values[2], 10),
+    P: parseInt(values[3], 10),
+    M: parseInt(values[4], 10),
   };
 }
 
 function decodeUnavailable(line) {
   const values = line.split(/\W+/);
   return {
-    row: values[0],
-    slot: values[1],
+    row: parseInt(values[0], 10),
+    slot: parseInt(values[1], 10),
   };
 }
 
 function decodeServer(line) {
   const values = line.split(/\W+/);
   return {
-    size: values[0],
-    capacity: values[1],
+    size: parseInt(values[0], 0),
+    capacity: parseInt(values[1], 0),
   };
 }
 
-function loadInput(filepath) {
+function loadFile(filepath) {
   const lines = fixEncoding(fs.readFileSync(filepath)).split('\n');
   const parameters = decodeParameters(lines[0]);
   const rows = generateRows(parameters);
-  const pools = [];
+  const pools = Array(parameters.P).fill([]);
   const servers = [];
   for (let i = 0; i < parameters.U; i += 1) {
     const unavailable = decodeUnavailable(lines[i + constants.UNAVAILABLE_OFFSET]);
     insert(rows, unavailable.row, unavailable.slot, constants.UNAVAILABLE);
   }
-  for (let i = 0; i < constants.M; i += 1) {
-    servers.push(decodeServer(lines[i + constants.UNAVAILABLE_OFFSET + parameters.U]));
+  for (let i = 0; i < parameters.M; i += 1) {
+    servers.push(decodeServer(lines[i + constants.UNAVAILBLE_OFFSET + parameters.U]));
   }
   return {
     parameters,
@@ -74,7 +74,18 @@ function loadInput(filepath) {
   };
 }
 
-function saveResult(rows, pools, filename) {}
+function saveResult(rows, parameters, filename) {
+  let output = '';
+  for (let i = 0; i < parameters.M; i += 1) {
+    const position = getPosition(rows, i);
+    if (position !== undefined) {
+      output += `${i} ${position.row} ${position.slot}\n`;
+    } else {
+      output += 'x\n';
+    }
+  }
+  fs.writeFileSync(output);
+}
 
 function insert(rows, rowid, colid, value, size = 1) {
   const row = rows.filter(r => r.rowid === rowid && r.colid === colid);
@@ -105,7 +116,7 @@ function computeGC(rows, pool, servers) {}
 function score(rows, pools, servers) {}
 
 module.exports = {
-  loadInput,
+  loadFile,
   saveResult,
   insert,
   getEmptySpace,
