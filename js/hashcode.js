@@ -1,8 +1,9 @@
 /* eslint no-use-before-define: 0 */
+/* eslint no-underscore-dangle: 0 */
 
+const assert = require('assert');
 const fs = require('fs');
 const iconv = require('iconv-lite');
-
 const constants = require('./constants');
 
 /**
@@ -17,10 +18,10 @@ function fixEncoding(buffer) {
 
 function generateRows(parameters) {
   // return Array(parameters.R).fill(Array(parameters.S).fill(constants.AVAILABLE));
-  // [rowid, colid, value, size]
+  // [rowid, slotid, value, size]
   return [...Array(parameters.R).keys()].map(i => ({
     rowid: i,
-    colid: 0,
+    slotid: 0,
     value: constants.AVAILABLE,
     size: parameters.S,
   }));
@@ -40,8 +41,8 @@ function decodeParameters(line) {
 function decodeUnavailable(line) {
   const values = line.split(/\W+/);
   return {
-    row: parseInt(values[0], 10),
-    slot: parseInt(values[1], 10),
+    rowid: parseInt(values[0], 10),
+    slotid: parseInt(values[1], 10),
   };
 }
 
@@ -56,15 +57,15 @@ function decodeServer(line) {
 function loadFile(filepath) {
   const lines = fixEncoding(fs.readFileSync(filepath)).split('\n');
   const parameters = decodeParameters(lines[0]);
-  const rows = generateRows(parameters);
+  let rows = generateRows(parameters);
   const pools = Array(parameters.P).fill([]);
   const servers = [];
   for (let i = 0; i < parameters.U; i += 1) {
     const unavailable = decodeUnavailable(lines[i + constants.UNAVAILABLE_OFFSET]);
-    insert(rows, unavailable.row, unavailable.slot, constants.UNAVAILABLE);
+    rows = insert(rows, unavailable.rowid, unavailable.slotid, constants.UNAVAILABLE);
   }
   for (let i = 0; i < parameters.M; i += 1) {
-    servers.push(decodeServer(lines[i + constants.UNAVAILBLE_OFFSET + parameters.U]));
+    servers.push(decodeServer(lines[i + constants.UNAVAILABLE_OFFSET + parameters.U]));
   }
   return {
     parameters,
@@ -87,18 +88,56 @@ function saveResult(rows, parameters, filename) {
   fs.writeFileSync(output);
 }
 
-function insert(rows, rowid, colid, value, size = 1) {
-  const row = rows.filter(r => r.rowid === rowid && r.colid === colid);
+function findIndex(rows, rowid, slotid, value, size = 1) {
   let i = 0;
-  for (let j = 0; i < row.length; i += 1) {
-    j += row[i][2];
-    if (j >= colid) {
-      break;
+  for (; i < rows.length; i += 1) {
+    // If the current slot is OK and the next one is not
+    if (rows[i].rowid === rowid && rows[i].slotid <= slotid) {
+      if (i + 1 >= rows.length || rows[i + 1].rowid !== rowid || rows[i + 1] > slotid) {
+        return i;
+      }
     }
   }
+  return -1;
 }
 
-function getEmptySpace(rows, size, row = 0, col = 0) {}
+function insert(rows, rowid, slotid, value, size = 1) {
+  const index = findIndex(rows, rowid, slotid, value, size);
+  assert(rows[index.value] !== constants.AVAILABLE);
+  const item = rows[index];
+  // Include all the previous element
+  let result = rows.slice(0, index);
+  if (item.slotid < slotid) {
+    // Add a previous element if we cut the current item in two
+    result = result.concat({
+      rowid: item.rowid,
+      slotid: item.slotid,
+      value: item.value,
+      size: slotid - item.slotid,
+    });
+  }
+  result = result.concat({
+    rowid: item.rowid,
+    slotid: slotid,
+    value,
+    size,
+  });
+  if (item.size !== size) {
+    // Add a next element if we didn't use up all the slots
+    return result.concat({
+      rowid: rows[index].rowid,
+      slotid: slotid + size,
+      value: rows[index].value,
+      size: rows[index].size - size - (slotid - item.slotid),
+    }).concat(rows.slice(index + 1));
+  }
+  // Replace the element
+  return result.concat(rows.slice(index + 1));
+}
+
+function getAvailableSlot(rows, size) {
+  return rows.filter(row => row.value === constants.AVAILABLE && row.size >= size);
+}
 
 function getPosition(rows, servers) {
   // Get row
@@ -112,15 +151,51 @@ function getPosition(rows, servers) {
   }
 }
 
-function computeGC(rows, pool, servers) {}
-function score(rows, pools, servers) {}
+function display(rows) {
+  let output = '';
+  let currentRow = 0;
+  for (let j = 0; j < rows.length; j += 1) {
+    if (currentRow !== rows[j].rowid) {
+      output += '\n';
+      currentRow = rows[j].rowid;
+    }
+    switch (rows[j].value) {
+      case constants.UNAVAILABLE:
+        output += new Array(rows[j].size + 1).join('X');
+        break;
+      case constants.AVAILABLE:
+        output += new Array(rows[j].size + 1).join('.');
+        break;
+      default:
+        output += new Array(rows[j].size + 1).join(rows[j].value);
+    }
+  }
+  console.log(output);
+}
+
+function computeGC(rows, servers, parameters, pool) {
+  let guaranteedCapacity = -1;
+  for (let i = 0; i < parameters.R; i += 1) {
+    const items = rows.filter(row => row.rowid !== i && pool.indexOf(row.value) !== -1);
+    const capacity = items.reduce((result, item) => servers[item.value].capacity + result, 0);
+    if (guaranteedCapacity === -1 || guaranteedCapacity > capacity) {
+      guaranteedCapacity = capacity;
+    }
+  }
+  return guaranteedCapacity;
+}
+
+function score(rows, servers, parameters, pools) {
+  return Math.min.apply(null, pools.map(pool => computeGC(rows, servers, parameters, pool)));
+}
 
 module.exports = {
   loadFile,
   saveResult,
   insert,
-  getEmptySpace,
+  getAvailableSlot,
   getPosition,
   computeGC,
   score,
+  display,
 };
