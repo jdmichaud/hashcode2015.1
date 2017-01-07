@@ -170,12 +170,13 @@ function display(rows) {
         output += new Array(rows[j].size + 1).join(rows[j].value);
     }
   }
-  console.log(output);
+  return output;
 }
 
 function computeGC(rows, servers, parameters, pool) {
   let guaranteedCapacity = -1;
   for (let i = 0; i < parameters.R; i += 1) {
+    // Keep all rows but row i and keep only servers from the pool
     const items = rows.filter(row => row.rowid !== i && pool.indexOf(row.value) !== -1);
     const capacity = items.reduce((result, item) => servers[item.value].capacity + result, 0);
     if (guaranteedCapacity === -1 || guaranteedCapacity > capacity) {

@@ -23,7 +23,8 @@
   },
   "homepage": "https://github.com/jdmichaud/hashcode2015.1",
   "dependencies": {
-    "iconv-lite": "^0.4.15"
+    "iconv-lite": "^0.4.15",
+    "lodash": "^4.17.4"
   },
   "devDependencies": {
     "eslint": "^3.12.2",
